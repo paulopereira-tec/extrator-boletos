@@ -1,0 +1,59 @@
+services:
+
+  extractor:
+    build: .
+    restart: unless-stopped
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+
+    ports:
+      - "127.0.0.1:8000:8000"   # acessível só via localhost na VPS; Traefik roteia pelo domínio
+
+    volumes:
+      # Persiste o estado (ativo/inativo) mesmo com restart do container
+      - extractor_state:/tmp
+
+    environment:
+      # ── Obrigatório ──────────────────────────────────────────────
+      DOCEXTRACT_API_KEY: ${DOCEXTRACT_API_KEY}
+
+      # ── LLM (opcional) ───────────────────────────────────────────
+      # Defina LLM_ENABLED=true e preencha as variáveis abaixo
+      # para ativar a análise por LLM após a extração.
+      LLM_ENABLED: ${LLM_ENABLED:-false}
+      LLM_PROVIDER: ${LLM_PROVIDER:-}       # openai | anthropic | groq
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_MODEL: ${LLM_MODEL:-}
+      LLM_PROMPT: ${LLM_PROMPT:-}
+
+      # ── Servidor ─────────────────────────────────────────────────
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+
+    labels:
+      # ── Traefik ──────────────────────────────────────────────────
+      traefik.enable: "true"
+
+      # Roteador HTTPS
+      traefik.http.routers.extractor.rule: "Host(`extractor.mresults.com.br`)"
+      traefik.http.routers.extractor.entrypoints: "websecure"
+      traefik.http.routers.extractor.tls.certresolver: "letsencrypt"
+
+      # Redireciona HTTP → HTTPS
+      traefik.http.routers.extractor-http.rule: "Host(`extractor.mresults.com.br`)"
+      traefik.http.routers.extractor-http.entrypoints: "web"
+      traefik.http.routers.extractor-http.middlewares: "redirect-to-https"
+      traefik.http.middlewares.redirect-to-https.redirectscheme.scheme: "https"
+
+      # Serviço interno
+      traefik.http.services.extractor.loadbalancer.server.port: "8000"
+
+    networks:
+      - MrNet
+
+volumes:
+  extractor_state:
+
+networks:
+  MrNet:
+    external: true   # rede já criada pelo seu stack do Traefik

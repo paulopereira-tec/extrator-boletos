@@ -1,0 +1,16 @@
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+pydantic==2.10.3
+pydantic-settings==2.6.1
+
+# Extração de texto de PDF
+pdfplumber==0.11.4
+
+# OCR fallback para PDFs escaneados
+pdf2image==1.17.0
+pytesseract==0.3.13
+
+# LLM providers (instale apenas o necessário via LLM_PROVIDER)
+openai==1.57.0
+anthropic==0.40.0
+groq==0.13.0
